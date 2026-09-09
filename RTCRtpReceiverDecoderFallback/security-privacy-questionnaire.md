@@ -284,9 +284,10 @@ depends on the browser's resource-isolation model.
 
 ## 2.16 Does this specification have both Security Considerations and Privacy Considerations sections?
 
-Yes. The explainer includes separate Security Considerations and Privacy
-Considerations sections describing the feature-specific risks and
-mitigations.
+Yes. The explainer includes separate
+[Privacy Considerations](./explainer.md#privacy-considerations) and
+[Security Considerations](./explainer.md#security-considerations) sections
+describing the feature-specific risks and mitigations.
 
 ## 2.17 Do features in this specification enable origins to downgrade default security protections?
 
