@@ -200,6 +200,31 @@ If the receiver later reenters the active interactive media state and its curren
     * Rejected because relying on stats to trigger a change felt like an anti-pattern and the recommendation was to explore an event driven solution. Additionally, there were concerns around fingerprinting.
     * [WebRTC March 2023 meeting – 21 March 2023](https://www.w3.org/2023/03/21-webrtc-minutes.html)
 
+## Security Considerations
+
+This proposal does not introduce a new network transport, media source,
+script execution mechanism, or ability to select, configure, reserve, or
+control a decoder. It reports state changes and terminal failures associated
+with an existing `RTCRtpReceiver`.
+
+Decoder events and protected statistics must be scoped to the affected
+receiver and its associated document. A qualifying interaction associated
+with one receiver, document, or origin must not enable access for unrelated
+receivers or origins. Cross-origin iframe support is out of scope. Only
+browser-observed interaction state may satisfy the gate; synthetic events
+must not qualify.
+
+Documents that are not fully active, including documents in BFCache or
+disconnected documents, must not receive decoder events or access protected
+decoder statistics through the expanded gate. Changes that occur while access
+is blocked must not be queued or replayed later.
+
+The `decodererror` event exposes only a generic `EncodingError`. It must not
+include decoder, hardware, driver, platform error-code, or
+resource-availability details. Applications should treat these events as
+notifications that the decoder changed or failed, not as proof of the
+underlying cause.
+
 ## Privacy Considerations
 
 ### Event exposure
