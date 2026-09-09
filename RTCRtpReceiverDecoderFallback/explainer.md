@@ -200,6 +200,25 @@ If the receiver later reenters the active interactive media state and its curren
     * Rejected because relying on stats to trigger a change felt like an anti-pattern and the recommendation was to explore an event driven solution. Additionally, there were concerns around fingerprinting.
     * [WebRTC March 2023 meeting – 21 March 2023](https://www.w3.org/2023/03/21-webrtc-minutes.html)
 
+## Privacy Considerations
+
+### Event exposure
+
+The events carry only the media frame's `rtpTimestamp` and expose no hardware vendor, device identity, or decoder implementation detail.
+
+* **`decoderstatechange`** distinguishes between information classes. Codec changes are reflected in ungated stats, so codec-change events are ungated. Decoder implementation changes can reveal hardware use and therefore fire only while hardware exposure is allowed. The protected [`decoderImplementation`](https://w3c.github.io/webrtc-stats/#dom-rtcinboundrtpstreamstats-decoderimplementation) and [`powerEfficientDecoder`](https://w3c.github.io/webrtc-stats/#dom-rtcinboundrtpstreamstats-powerefficientdecoder) statistics are available under that same condition.
+* **`decodererror`** is ungated and exposes a single [`EncodingError`](https://webidl.spec.whatwg.org/#encodingerror) [`DOMException`](https://developer.mozilla.org/en-US/docs/Web/API/DOMException) `name`, with no decoder-, driver-, or device-specific detail in its `message`. The decode failure it reports is already observable through ungated statistics: [`framesReceived`](https://w3c.github.io/webrtc-stats/#dom-rtcinboundrtpstreamstats-framesreceived) keeps advancing while [`framesDecoded`](https://w3c.github.io/webrtc-stats/#dom-rtcinboundrtpstreamstats-framesdecoded) stalls, and [`freezeCount`](https://w3c.github.io/webrtc-stats/#dom-rtcinboundrtpstreamstats-freezecount) rises. Codec support is likewise already queryable via [`getCapabilities()`](https://developer.mozilla.org/en-US/docs/Web/API/RTCRtpReceiver/getCapabilities_static). The event surfaces the failure sooner and more precisely than polling, but the underlying information is already available, so it does not increase the fingerprinting surface.
+
+### Hardware-exposure safeguards
+
+The proposed `decoderstatechange` event for decoder implementation changes and the protected decoder statistics would invoke the hardware-exposure check with the relevant receiver. Outbound statistics would invoke the same check without a receiver. This keeps one hardware-exposure algorithm while ensuring that active interactive media state can allow only receiver-related exposure.
+
+Interactive media session recognition is scoped to a specific receiver and requires active video decoding in a visible, focused document together with a qualifying indication of user interaction. Recognition alone does not expose protected information. Receiver-specific exposure remains limited to periods when the recognized receiver is actively decoding and its document is visible and focused. This allows temporary focus or visibility changes without requiring the user to reestablish the session, while preventing background observation of decoder state. The additional condition does not unlock protected outbound statistics, whose exposure remains tied to context capturing state.
+
+### Relationship to MediaCapabilities
+
+[`MediaCapabilitiesInfo.powerEfficient`](https://www.w3.org/TR/media-capabilities/#dom-mediacapabilitiesinfo-powerefficient) can expose whether a hypothetical configuration is expected to be power efficient without requiring active capture. The protected WebRTC statistics differ because they describe the actual decoder and can change during a session, potentially revealing contention for shared hardware resources across tabs or applications. Requiring an active receiver, a foreground document, and ongoing user interaction limits this additional exposure to contexts that need the live operational signal.
+
 ## Security Considerations
 
 This proposal does not introduce a new network transport, media source,
@@ -224,25 +243,6 @@ include decoder, hardware, driver, platform error-code, or
 resource-availability details. Applications should treat these events as
 notifications that the decoder changed or failed, not as proof of the
 underlying cause.
-
-## Privacy Considerations
-
-### Event exposure
-
-The events carry only the media frame's `rtpTimestamp` and expose no hardware vendor, device identity, or decoder implementation detail.
-
-* **`decoderstatechange`** distinguishes between information classes. Codec changes are reflected in ungated stats, so codec-change events are ungated. Decoder implementation changes can reveal hardware use and therefore fire only while hardware exposure is allowed. The protected [`decoderImplementation`](https://w3c.github.io/webrtc-stats/#dom-rtcinboundrtpstreamstats-decoderimplementation) and [`powerEfficientDecoder`](https://w3c.github.io/webrtc-stats/#dom-rtcinboundrtpstreamstats-powerefficientdecoder) statistics are available under that same condition.
-* **`decodererror`** is ungated and exposes a single [`EncodingError`](https://webidl.spec.whatwg.org/#encodingerror) [`DOMException`](https://developer.mozilla.org/en-US/docs/Web/API/DOMException) `name`, with no decoder-, driver-, or device-specific detail in its `message`. The decode failure it reports is already observable through ungated statistics: [`framesReceived`](https://w3c.github.io/webrtc-stats/#dom-rtcinboundrtpstreamstats-framesreceived) keeps advancing while [`framesDecoded`](https://w3c.github.io/webrtc-stats/#dom-rtcinboundrtpstreamstats-framesdecoded) stalls, and [`freezeCount`](https://w3c.github.io/webrtc-stats/#dom-rtcinboundrtpstreamstats-freezecount) rises. Codec support is likewise already queryable via [`getCapabilities()`](https://developer.mozilla.org/en-US/docs/Web/API/RTCRtpReceiver/getCapabilities_static). The event surfaces the failure sooner and more precisely than polling, but the underlying information is already available, so it does not increase the fingerprinting surface.
-
-### Hardware-exposure safeguards
-
-The proposed `decoderstatechange` event for decoder implementation changes and the protected decoder statistics would invoke the hardware-exposure check with the relevant receiver. Outbound statistics would invoke the same check without a receiver. This keeps one hardware-exposure algorithm while ensuring that active interactive media state can allow only receiver-related exposure.
-
-Interactive media session recognition is scoped to a specific receiver and requires active video decoding in a visible, focused document together with a qualifying indication of user interaction. Recognition alone does not expose protected information. Receiver-specific exposure remains limited to periods when the recognized receiver is actively decoding and its document is visible and focused. This allows temporary focus or visibility changes without requiring the user to reestablish the session, while preventing background observation of decoder state. The additional condition does not unlock protected outbound statistics, whose exposure remains tied to context capturing state.
-
-### Relationship to MediaCapabilities
-
-[`MediaCapabilitiesInfo.powerEfficient`](https://www.w3.org/TR/media-capabilities/#dom-mediacapabilitiesinfo-powerefficient) can expose whether a hypothetical configuration is expected to be power efficient without requiring active capture. The protected WebRTC statistics differ because they describe the actual decoder and can change during a session, potentially revealing contention for shared hardware resources across tabs or applications. Requiring an active receiver, a foreground document, and ongoing user interaction limits this additional exposure to contexts that need the live operational signal.
 
 ## Open Questions
 
