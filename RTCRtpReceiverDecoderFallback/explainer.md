@@ -140,6 +140,13 @@ pc.addEventListener('track', (event) => {
     * Rejected because relying on stats to trigger a change felt like an anti-pattern and the recommendation was to explore an event driven solution. Additionally, there were concerns around fingerprinting.
     * [WebRTC March 2023 meeting – 21 March 2023](https://www.w3.org/2023/03/21-webrtc-minutes.html)
 
+## Privacy Considerations
+
+The events carry only the media frame's `rtpTimestamp`. They expose no hardware vendor, device identity, or decoder detail. Applications can read decoder state through [`getStats()`](https://w3c.github.io/webrtc-pc/#dom-rtcrtpreceiver-getstats), which applies its existing privacy protections.
+
+* **`decoderstatechange`** follows the same gating as the stats that reflect the change. Codec changes are reflected in ungated stats, so the event fires regardless of capture state. Decoder implementation changes (such as a hardware-to-software fallback) are reflected only in [`decoderImplementation`](https://w3c.github.io/webrtc-stats/#dom-rtcinboundrtpstreamstats-decoderimplementation) and [`powerEfficientDecoder`](https://w3c.github.io/webrtc-stats/#dom-rtcinboundrtpstreamstats-powerefficientdecoder), which `getStats()` exposes only when [exposing hardware is allowed](https://w3c.github.io/webrtc-stats/#dfn-exposing-hardware-is-allowed). It therefore reveals nothing the page cannot already read.
+* **`decodererror`** exposes a single [`EncodingError`](https://webidl.spec.whatwg.org/#encodingerror) [`DOMException`](https://developer.mozilla.org/en-US/docs/Web/API/DOMException) `name`, with no decoder-, driver-, or device-specific detail in its `message`. The decode failure it reports is already observable through ungated statistics: [`framesReceived`](https://w3c.github.io/webrtc-stats/#dom-rtcinboundrtpstreamstats-framesreceived) keeps advancing while [`framesDecoded`](https://w3c.github.io/webrtc-stats/#dom-rtcinboundrtpstreamstats-framesdecoded) stalls, and [`freezeCount`](https://w3c.github.io/webrtc-stats/#dom-rtcinboundrtpstreamstats-freezecount) rises. Codec support is likewise already queryable via [`getCapabilities()`](https://developer.mozilla.org/en-US/docs/Web/API/RTCRtpReceiver/getCapabilities_static). The event surfaces the failure sooner and more precisely than polling, but the underlying information is already available, so it does not increase the fingerprinting surface.
+
 ## Security Considerations
 
 This proposal does not introduce a new network transport, media source,
@@ -164,13 +171,6 @@ include decoder, hardware, driver, platform error-code, or
 resource-availability details. Applications should treat these events as
 notifications that the decoder changed or failed, not as proof of the
 underlying cause.
-
-## Privacy Considerations
-
-The events carry only the media frame's `rtpTimestamp`. They expose no hardware vendor, device identity, or decoder detail. Applications can read decoder state through [`getStats()`](https://w3c.github.io/webrtc-pc/#dom-rtcrtpreceiver-getstats), which applies its existing privacy protections.
-
-* **`decoderstatechange`** follows the same gating as the stats that reflect the change. Codec changes are reflected in ungated stats, so the event fires regardless of capture state. Decoder implementation changes (such as a hardware-to-software fallback) are reflected only in [`decoderImplementation`](https://w3c.github.io/webrtc-stats/#dom-rtcinboundrtpstreamstats-decoderimplementation) and [`powerEfficientDecoder`](https://w3c.github.io/webrtc-stats/#dom-rtcinboundrtpstreamstats-powerefficientdecoder), which `getStats()` exposes only when [exposing hardware is allowed](https://w3c.github.io/webrtc-stats/#dfn-exposing-hardware-is-allowed). It therefore reveals nothing the page cannot already read.
-* **`decodererror`** exposes a single [`EncodingError`](https://webidl.spec.whatwg.org/#encodingerror) [`DOMException`](https://developer.mozilla.org/en-US/docs/Web/API/DOMException) `name`, with no decoder-, driver-, or device-specific detail in its `message`. The decode failure it reports is already observable through ungated statistics: [`framesReceived`](https://w3c.github.io/webrtc-stats/#dom-rtcinboundrtpstreamstats-framesreceived) keeps advancing while [`framesDecoded`](https://w3c.github.io/webrtc-stats/#dom-rtcinboundrtpstreamstats-framesdecoded) stalls, and [`freezeCount`](https://w3c.github.io/webrtc-stats/#dom-rtcinboundrtpstreamstats-freezecount) rises. Codec support is likewise already queryable via [`getCapabilities()`](https://developer.mozilla.org/en-US/docs/Web/API/RTCRtpReceiver/getCapabilities_static). The event surfaces the failure sooner and more precisely than polling, but the underlying information is already available, so it does not increase the fingerprinting surface.
 
 ## Stakeholder Feedback
 * Web Developers: Positive
