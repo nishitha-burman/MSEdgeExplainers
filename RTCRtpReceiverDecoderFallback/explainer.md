@@ -140,6 +140,31 @@ pc.addEventListener('track', (event) => {
     * Rejected because relying on stats to trigger a change felt like an anti-pattern and the recommendation was to explore an event driven solution. Additionally, there were concerns around fingerprinting.
     * [WebRTC March 2023 meeting – 21 March 2023](https://www.w3.org/2023/03/21-webrtc-minutes.html)
 
+## Security Considerations
+
+This proposal does not introduce a new network transport, media source,
+script execution mechanism, or ability to select, configure, reserve, or
+control a decoder. It reports state changes and terminal failures associated
+with an existing `RTCRtpReceiver`.
+
+Decoder events and protected statistics must be scoped to the affected
+receiver and its associated document. A qualifying interaction associated
+with one receiver, document, or origin must not enable access for unrelated
+receivers or origins. Cross-origin iframe support is out of scope. Only
+browser-observed interaction state may satisfy the gate; synthetic events
+must not qualify.
+
+Documents that are not fully active, including documents in BFCache or
+disconnected documents, must not receive decoder events or access protected
+decoder statistics through the expanded gate. Changes that occur while access
+is blocked must not be queued or replayed later.
+
+The `decodererror` event exposes only a generic `EncodingError`. It must not
+include decoder, hardware, driver, platform error-code, or
+resource-availability details. Applications should treat these events as
+notifications that the decoder changed or failed, not as proof of the
+underlying cause.
+
 ## Privacy Considerations
 
 The events carry only the media frame's `rtpTimestamp`. They expose no hardware vendor, device identity, or decoder detail. Applications can read decoder state through [`getStats()`](https://w3c.github.io/webrtc-pc/#dom-rtcrtpreceiver-getstats), which applies its existing privacy protections.
@@ -167,4 +192,3 @@ Links to past working group meetings where this has been discussed:
 * 2025-09-16 WebRTC WG Call: [Slides 17-21](https://docs.google.com/presentation/d/11rr8X4aOao1AmvyoDLX8o9CPCmnDHkWGRM3nB4Q_104/edit?slide=id.g37afa1cfe47_0_26#slide=id.g37afa1cfe47_0_26) & [minutes](https://www.w3.org/2025/09/16-webrtc-minutes.html)
 * 2023-09-15 WebRTC WG Call: [Slides 25-31](https://docs.google.com/presentation/d/1FpCAlxvRuC0e52JrthMkx-ILklB5eHszbk8D3FIuSZ0/edit?slide=id.g2452ff65d17_0_71#slide=id.g2452ff65d17_0_71) & [minutes](https://www.w3.org/2023/09/15-webrtc-minutes.html)
 * 2023-03-21 WebRTC WG Call: [Slides 16-18](https://lists.w3.org/Archives/Public/www-archive/2023Mar/att-0004/WEBRTCWG-2023-03-21.pdf) & [minutes](https://www.w3.org/2023/03/21-webrtc-minutes.html)
-
