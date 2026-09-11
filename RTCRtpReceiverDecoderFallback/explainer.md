@@ -252,31 +252,6 @@ underlying cause.
 * **Embedded contexts:** Which document's visibility, focus, fullscreen, locks, and input should be considered when the receiver belongs to an iframe? Should cross-origin use require explicit delegation through Permissions Policy?
 * **Information scope:** Should the interactive allowance expose both `decoderImplementation` and `powerEfficientDecoder`, or only the lower-entropy efficiency signal and corresponding state-change event?
 
-## Security Considerations
-
-This proposal does not introduce a new network transport, media source,
-script execution mechanism, or ability to select, configure, reserve, or
-control a decoder. It reports state changes and terminal failures associated
-with an existing `RTCRtpReceiver`.
-
-Decoder events and protected statistics must be scoped to the affected
-receiver and its associated document. A qualifying interaction associated
-with one receiver, document, or origin must not enable access for unrelated
-receivers or origins. Cross-origin iframe support is out of scope. Only
-browser-observed interaction state may satisfy the gate; synthetic events
-must not qualify.
-
-Documents that are not fully active, including documents in BFCache or
-disconnected documents, must not receive decoder events or access protected
-decoder statistics through the expanded gate. Changes that occur while access
-is blocked must not be queued or replayed later.
-
-The `decodererror` event exposes only a generic `EncodingError`. It must not
-include decoder, hardware, driver, platform error-code, or
-resource-availability details. Applications should treat these events as
-notifications that the decoder changed or failed, not as proof of the
-underlying cause.
-
 ## Stakeholder Feedback
 * Web Developers: Positive
     * [Xbox Cloud Gaming](https://github.com/w3c/webrtc-stats/pull/725#discussion_r1093134014) & Nvidia GeForce Now have direct use cases.
