@@ -2,7 +2,7 @@
 
 **Proposal:** RTCRtpReceiver Decoder State Changed and Error Events  
 **Status:** Working draft for internal review  
-**Last updated:** September 3, 2026
+**Last updated:** September 11, 2026
 
 This document answers the
 [W3C Security and Privacy Self-Review Questionnaire](https://w3c.github.io/security-questionnaire/)
@@ -104,6 +104,12 @@ identify whether the decoder was hardware or software or expose
 implementation-specific error details. This lets an application promptly
 recover from or explain a frozen stream.
 
+WebCodecs similarly reports decoding failures through the
+[`VideoDecoder` error callback](https://w3c.github.io/webcodecs/#dom-videodecoderinit-error).
+That callback only covers decoders created directly through WebCodecs; it
+cannot report errors from the browser-managed decoder used by an
+`RTCRtpReceiver`, which is the gap this proposal addresses.
+
 ### First-party information
 
 The events make decoder changes and terminal failures easier for the first
@@ -113,8 +119,14 @@ existing WebRTC statistics or playback behavior:
 - **Codec changes:** `getStats()` already reports the codec currently used by
   the receiver.
 - **Terminal decoder failures:** The application can observe that playback
-  freezes and use existing statistics to see that frames or packets continue
-  to arrive while decoded or rendered frames stop increasing.
+  freezes and use existing statistics to see that
+  [`framesReceived`](https://w3c.github.io/webrtc-stats/#dom-rtcinboundrtpstreamstats-framesreceived)
+  continues increasing while
+  [`framesDecoded`](https://w3c.github.io/webrtc-stats/#dom-rtcinboundrtpstreamstats-framesdecoded)
+  stops increasing. This indicates that complete video frames continue to
+  arrive but are no longer being successfully decoded.
+  [`freezeCount`](https://w3c.github.io/webrtc-stats/#dom-rtcinboundrtpstreamstats-freezecount)
+  may also increase, providing additional evidence that playback has frozen.
 - **Decoder implementation changes:** When the existing capture-based
   hardware-exposure gate is satisfied, `getStats()` already exposes
   [`decoderImplementation`](https://w3c.github.io/webrtc-stats/#dom-rtcinboundrtpstreamstats-decoderimplementation)
