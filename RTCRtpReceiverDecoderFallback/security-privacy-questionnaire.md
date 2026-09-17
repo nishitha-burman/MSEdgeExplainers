@@ -1,8 +1,8 @@
 # Security and Privacy Self-Review
 
 **Proposal:** RTCRtpReceiver Decoder State Changed and Error Events  
-**Status:** Working draft for internal review  
-**Last updated:** September 11, 2026
+**Status:** Completed self-review  
+**Last updated:** September 17, 2026
 
 This document answers the
 [W3C Security and Privacy Self-Review Questionnaire](https://w3c.github.io/security-questionnaire/)
@@ -40,37 +40,62 @@ that check returns true when the context capturing state is true.
 The expanded gate under consideration extends the existing
 [hardware-exposure algorithm](https://w3c.github.io/webrtc-stats/#dfn-exposing-hardware-is-allowed),
 which currently relies on the
-[context capturing state](https://w3c.github.io/mediacapture-main/#context-capturing-state):
+[context capturing state](https://w3c.github.io/mediacapture-main/#context-capturing-state).
+
+The proposal distinguishes recognition of an interactive media session from
+the receiver's current eligibility for hardware exposure.
+
+An `RTCRtpReceiver` would be recognized as belonging to an interactive media
+session when all of the following entry conditions are true at the same time:
+
+- Its associated document is visible and focused.
+- It has a live video track and has recently received and successfully decoded
+  a video frame.
+- At least one qualifying interaction condition applies: pointer lock,
+  keyboard lock, recent meaningful gamepad input, or fullscreen combined with
+  recent keyboard, pointer, touch, or meaningful gamepad input.
+
+Recognition applies only to the receiver that satisfied the entry conditions;
+it does not qualify other receivers. Once recognized, the receiver remains
+associated with the interactive session during temporary focus or visibility
+loss, after an interaction lock ends, or when the recent-user-input time
+window expires. Protected information is still unavailable whenever the
+receiver is not in the active interactive media state.
+
+A recognized receiver would be in the active interactive media state while
+its document is visible and focused, its video track is live, and it has
+recently received and successfully decoded a frame. Protected decoder
+information would be exposed only while the receiver is in this active state.
+
+Conceptually, the hardware-exposure algorithm would be updated as follows:
 
 ```text
-To check if decoder hardware exposure is allowed for receiver:
+To check if hardware exposure is allowed, given an optional receiver:
 
 1. If the context capturing state is true, return true.
-2. If receiver satisfies the active interactive media conditions,
-   return true.
+2. If receiver was given and receiver is in the active interactive media
+   state, return true.
 3. Return false.
 ```
 
-A receiver would satisfy the active interactive media conditions when:
+If the receiver leaves the active interactive media state, protected decoder
+statistics are no longer exposed and decoder-implementation-change events are
+suppressed. This does not clear the receiver's interactive media session
+recognition.
 
-```text
-The receiver is actively receiving video
-AND its associated document is fully active, visible, and focused
-AND at least one qualifying interaction condition applies:
-    pointer lock
-    OR keyboard lock
-    OR recent trusted gamepad activity
-    OR qualifying fullscreen use
-```
+If the receiver later reenters the active interactive media state and its
+current decoder implementation differs from the last implementation exposed
+to the application, one coalesced `decoderstatechange` reports the current
+observable state. Intermediate changes that occurred while exposure was
+suspended are not replayed. The event uses the `rtpTimestamp` of a frame
+decoded after exposure resumes rather than revealing when a hidden transition
+occurred.
 
 The following details remain under discussion:
 
 1. How recent gamepad activity is defined and when it expires.
 2. Whether the event timestamp needs lower precision, coalescing, or rate
    limiting.
-3. If a decoder implementation change occurs while the gating conditions are
-   not satisfied, whether an event is fired when the conditions later become
-   satisfied to report the decoder's current state.
 
 ## 2.1 What information does this feature expose, and for what purposes?
 
@@ -170,10 +195,12 @@ with other information. Decoder-change timing could also reveal changes in
 shared hardware availability, potentially allowing a site to infer that
 another tab or application started or stopped using video-decoding resources.
 
-The proposal minimizes these risks by preventing passive or background access:
-protected decoder information is available only for the affected receiver,
-while it is actively receiving video in a fully active, visible, and focused
-document with a qualifying user-interaction signal.
+The proposal minimizes these risks by preventing passive or background access.
+A qualifying interaction is required to establish interactive media session
+recognition for a specific receiver. Protected decoder information is then
+available only while that recognized receiver is in the active interactive
+media state: its document is visible and focused, its video track is live, and
+it has recently received and successfully decoded a frame.
 
 ## 2.4 How do the features in this specification deal with sensitive information?
 
@@ -185,10 +212,13 @@ The proposal minimizes this risk by:
 
 - Exposing no hardware or decoder details in the event payload and continuing
   to gate protected statistics.
-- Requiring active incoming video in a fully active, visible, and focused
-  document with a qualifying user-interaction signal.
-- Limiting access to the qualifying video receiver and clearing saved
-  qualifying state when the receiver or document session ends.
+- Requiring visible, focused, actively decoded incoming video together with a
+  qualifying interaction signal before recognizing the receiver as belonging
+  to an interactive media session.
+- Exposing protected information only while the recognized receiver is in the
+  active interactive media state.
+- Limiting recognition and exposure to the qualifying receiver and clearing
+  recognition when the receiver or document session ends.
 
 ## 2.5 Does data exposed by this specification carry related but distinct information that may not be obvious to users?
 
@@ -218,18 +248,27 @@ hardware, codec, stream configuration, and decoder-allocation policy.
 The event may nevertheless make these changes easier to observe than existing
 performance heuristics.
 
-The active interactive media conditions prevent passive monitoring by pages
-that are hidden, unfocused, not actively receiving video, or lack a qualifying
-user-interaction signal. However, a page that satisfies these conditions could
-still potentially observe decoder changes caused by other users of shared
-hardware resources.
+The recognition and active-state requirements prevent passive monitoring by
+pages that have not demonstrated an interactive media use case. Even after a
+receiver is recognized, protected information is unavailable while its
+document is hidden or unfocused or while it is not actively receiving and
+decoding video.
+
+A page with a recognized receiver that is currently in the active interactive
+media state could still potentially observe decoder changes caused by other
+users of shared hardware resources.
 
 ## 2.6 Do the features in this specification introduce state that persists across browsing sessions?
 
-No. Any saved qualifying state is limited to the current receiver and
-document. It is cleared when the receiver's track ends, the receiver is
-replaced, or the document navigates or is discarded. It does not persist
-across browsing sessions.
+No. Interactive media session recognition is limited to the current receiver
+and document. It does not persist across browsing sessions.
+
+Recognition ends when the receiver's video track ends, its associated
+transceiver is stopped, its peer connection is closed, its document navigates
+or is discarded, or it stops receiving and successfully decoding video for
+long enough that the browser determines the interactive session has ended.
+Temporary focus or visibility loss, the end of an interaction lock, or the
+user not providing input recently does not by itself end recognition.
 
 ## 2.7 Do the features in this specification expose information about the underlying platform to origins?
 
@@ -238,10 +277,14 @@ and `powerEfficientDecoder` reports whether the active decoder is considered
 power-efficient. Their values and changes may reveal information about
 hardware support, software fallback, and shared decoder availability.
 
-The expanded gate applies to both fields. Exposure is limited to the affected
-receiver while it is actively receiving video in a fully active, visible, and
-focused document with a qualifying interaction signal. The proposal does not
-expose decoder capacity, device identifiers, GPU models, or driver details.
+The expanded gate applies to both fields. A qualifying interaction is required
+to establish interactive media session recognition for the affected receiver.
+Exposure is then limited to periods when that recognized receiver is in the
+active interactive media state: its document is visible and focused, its video
+track is live, and it has recently received and successfully decoded a frame.
+
+The proposal does not expose decoder capacity, device identifiers, GPU models,
+or driver details.
 
 ## 2.8 Does this specification allow an origin to send data to the underlying platform?
 
@@ -281,9 +324,11 @@ or correlation risk remains under review.
 
 ## 2.14 How does this specification distinguish between behavior in first-party and third-party contexts?
 
-The expanded gate is limited to first-party use. The receiver and qualifying
-interaction must belong to the first-party document. Cross-origin iframe use
-and delegation are out of scope.
+The current proposal does not enable receiver-specific hardware exposure in
+cross-origin iframes. The receiver, its associated document, and the
+interaction used to establish interactive media session recognition must
+belong to the first-party context. Cross-origin iframe use and delegation are
+out of scope.
 
 ## 2.15 How do the features in this specification work in Private Browsing or Incognito mode?
 
@@ -303,37 +348,41 @@ describing the feature-specific risks and mitigations.
 
 ## 2.17 Do features in this specification enable origins to downgrade default security protections?
 
-No security protection is downgraded. The proposal broadens the privacy gate
-for two decoder statistics, but only for the affected receiver when the active
-interactive media conditions are satisfied.
+No security protection is downgraded. The proposal adds a receiver-specific
+way to satisfy the hardware-exposure gate for two protected decoder
+statistics. It applies only after the affected receiver has been recognized as
+belonging to an interactive media session and only while that receiver is in
+the active interactive media state.
+
+The existing capture-based behavior remains unchanged. The new
+receiver-specific condition applies only to protected decoder information for
+that receiver; it does not expose protected information about outgoing video
+encoding.
 
 ## 2.18 What happens when a document that uses this feature is kept alive in BFCache?
 
-A document in BFCache is not fully active, so it cannot satisfy the gate,
-receive decoder events, or access protected decoder statistics through the
-expanded gate.
+A document in BFCache is not fully active, so protected decoder statistics are
+not exposed and decoder events are not dispatched while the document is in
+BFCache. Entering BFCache does not by itself clear the receiver's interactive
+media session recognition.
 
-The behavior after the document is restored is still under consideration. In
-particular, if a decoder change occurred while the document was inactive and
-the gating conditions later become satisfied, it is not yet decided whether
-the browser reports the decoder's current state through an event or reports
-only subsequent decoder changes.
-
-<!--
-Proposed behavior:
-
-Events are not queued or replayed. If the document is restored, the browser
-recalculates the gating conditions. If access becomes allowed, `getStats()`
-reflects the current decoder state. Changes that occurred while the document
-was in BFCache are not replayed. Events fire only for new decoder changes that
-occur after restoration while the gating conditions are satisfied.
--->
+After restoration, the receiver must reenter the active interactive media
+state before protected information can be exposed. Intermediate decoder
+implementation changes that occurred while the document was in BFCache are
+not replayed. If the current implementation differs from the last
+implementation exposed before entering BFCache, one coalesced
+`decoderstatechange` may be dispatched using the `rtpTimestamp` of a frame
+decoded after exposure resumes.
 
 ## 2.19 What happens when a document that uses this feature gets disconnected?
 
-A disconnected document is not fully active. It stops receiving decoder
-events and can no longer access the gated `decoderImplementation` and
-`powerEfficientDecoder` statistics. Events are not queued for later delivery.
+A disconnected document is not fully active. It does not receive decoder
+events and cannot access the gated `decoderImplementation` or
+`powerEfficientDecoder` statistics.
+
+Intermediate events are not queued or replayed. If the document later becomes
+fully active and the receiver reenters the active interactive media state, the
+general eligibility-transition behavior applies.
 
 ## 2.20 Does this specification define when and how new kinds of errors should be raised?
 

@@ -217,7 +217,7 @@ Interactive media session recognition is scoped to a specific receiver and requi
 
 ### Relationship to MediaCapabilities
 
-[`MediaCapabilitiesInfo.powerEfficient`](https://www.w3.org/TR/media-capabilities/#dom-mediacapabilitiesinfo-powerefficient) can expose whether a hypothetical configuration is expected to be power efficient without requiring active capture. The protected WebRTC statistics differ because they describe the actual decoder and can change during a session, potentially revealing contention for shared hardware resources across tabs or applications. Requiring an active receiver, a foreground document, and ongoing user interaction limits this additional exposure to contexts that need the live operational signal.
+[`MediaCapabilitiesInfo.powerEfficient`](https://www.w3.org/TR/media-capabilities/#dom-mediacapabilitiesinfo-powerefficient) can expose whether a hypothetical configuration is expected to be power efficient without requiring active capture. The protected WebRTC statistics differ because they describe the actual decoder and can change during a session, potentially revealing contention for shared hardware resources across tabs or applications. Requiring prior qualifying user interaction to establish recognition, together with a visible and focused document and an actively decoding recognized receiver, limits this additional exposure to active interactive-media applications that need to respond to decoder changes.
 
 ## Security Considerations
 
@@ -235,8 +235,12 @@ must not qualify.
 
 Documents that are not fully active, including documents in BFCache or
 disconnected documents, must not receive decoder events or access protected
-decoder statistics through the expanded gate. Changes that occur while access
-is blocked must not be queued or replayed later.
+decoder statistics through the expanded gate. Intermediate changes that occur
+while access is blocked must not be queued or replayed. If eligibility resumes
+and the current decoder implementation differs from the last exposed
+implementation, one coalesced `decoderstatechange` may report the current
+observable state using the `rtpTimestamp` of a frame decoded after exposure
+resumes.
 
 The `decodererror` event exposes only a generic `EncodingError`. It must not
 include decoder, hardware, driver, platform error-code, or
@@ -249,8 +253,6 @@ underlying cause.
 * **Timing windows:** How long should recent decoded frames and recent input continue to qualify? The values must avoid eligibility flicker during normal streaming while promptly suspending exposure when active decoding stops.
 * **Session lifetime:** How long may a recognized receiver stop receiving or decoding video before its interactive media session recognition ends? The period should tolerate temporary network interruptions without allowing a site to preserve recognition indefinitely.
 * **Meaningful gamepad input:** What button, trigger, or axis thresholds distinguish intentional input from connection events, polling noise, and stick drift?
-* **Embedded contexts:** Which document's visibility, focus, fullscreen, locks, and input should be considered when the receiver belongs to an iframe? Should cross-origin use require explicit delegation through Permissions Policy?
-* **Information scope:** Should the interactive allowance expose both `decoderImplementation` and `powerEfficientDecoder`, or only the lower-entropy efficiency signal and corresponding state-change event?
 
 ## Stakeholder Feedback
 * Web Developers: Positive
@@ -258,7 +260,7 @@ underlying cause.
 * Chromium: Positive; actively pursuing proposal.
 * WebKit & Gecko: Overall positive feedback, but privacy/fingerprinting is a common concern.
 
-Last discussed in the 2025-11-13 Media WG Meeting (TPAC): [Slides 110-117](https://docs.google.com/presentation/d/1sd5zEnvlXO5Sk3ENQorUUIQiRz65sv0KZKxDMMYHM3I/edit?slide=id.g37005de94ba_0_154#slide=id.g37005de94ba_0_154) & [minutes](https://www.w3.org/2025/11/13-mediawg-minutes.html#6fa5)
+Last discussed in the 2026-09-15 WebRTC WG Call: [Slides 9-17](https://docs.google.com/presentation/d/1KXC2uB4eoHQ4Ixj4pnDVyOJ41qGv7nYCgss_oBqm9ik/) & [minutes](https://www.w3.org/2026/09/15-webrtc-minutes.html)
 
 ## References & Acknowledgements
 Many thanks for valuable feedback and advice from:
@@ -268,6 +270,7 @@ Many thanks for valuable feedback and advice from:
 * [Sun Shin](https://github.com/xingri)
 
 Links to past working group meetings where this has been discussed:
+* 2026-09-15 WebRTC WG Call: [Slides 9-17](https://docs.google.com/presentation/d/1KXC2uB4eoHQ4Ixj4pnDVyOJ41qGv7nYCgss_oBqm9ik/) & [minutes](https://www.w3.org/2026/09/15-webrtc-minutes.html)
 * 2025-11-13 Media WG Meeting (TPAC): [Slides 110-117](https://docs.google.com/presentation/d/1sd5zEnvlXO5Sk3ENQorUUIQiRz65sv0KZKxDMMYHM3I/edit?slide=id.g37005de94ba_0_154#slide=id.g37005de94ba_0_154) & [minutes](https://www.w3.org/2025/11/13-mediawg-minutes.html#6fa5)
 * 2025-09-16 WebRTC WG Call: [Slides 17-21](https://docs.google.com/presentation/d/11rr8X4aOao1AmvyoDLX8o9CPCmnDHkWGRM3nB4Q_104/edit?slide=id.g37afa1cfe47_0_26#slide=id.g37afa1cfe47_0_26) & [minutes](https://www.w3.org/2025/09/16-webrtc-minutes.html)
 * 2023-09-15 WebRTC WG Call: [Slides 25-31](https://docs.google.com/presentation/d/1FpCAlxvRuC0e52JrthMkx-ILklB5eHszbk8D3FIuSZ0/edit?slide=id.g2452ff65d17_0_71#slide=id.g2452ff65d17_0_71) & [minutes](https://www.w3.org/2023/09/15-webrtc-minutes.html)
