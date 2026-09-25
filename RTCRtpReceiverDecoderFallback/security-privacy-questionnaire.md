@@ -53,7 +53,7 @@ session when all of the following entry conditions are true at the same time:
   a video frame.
 - At least one qualifying interaction condition applies: pointer lock,
   keyboard lock, recent meaningful gamepad input, or fullscreen combined with
-  recent keyboard, pointer, touch, or meaningful gamepad input.
+  recent keyboard, pointer, or touch input.
 
 Recognition applies only to the receiver that satisfied the entry conditions;
 it does not qualify other receivers. Once recognized, the receiver remains
@@ -62,10 +62,16 @@ loss, after an interaction lock ends, or when the recent-user-input time
 window expires. Protected information is still unavailable whenever the
 receiver is not in the active interactive media state.
 
-A recognized receiver would be in the active interactive media state while
-its document is visible and focused, its video track is live, and it has
-recently received and successfully decoded a frame. Protected decoder
-information would be exposed only while the receiver is in this active state.
+A receiver would be in the active interactive media state when all of the
+following conditions are true at the same time:
+
+- The receiver is recognized as belonging to an interactive media session.
+- Its associated document is visible and focused.
+- It has a live video track and has recently received and successfully decoded
+  a frame.
+
+Protected decoder information would be exposed only while all of these
+conditions remain true.
 
 Conceptually, the hardware-exposure algorithm would be updated as follows:
 
