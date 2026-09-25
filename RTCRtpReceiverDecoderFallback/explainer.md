@@ -217,7 +217,7 @@ Interactive media session recognition is scoped to a specific receiver and requi
 
 ### Relationship to MediaCapabilities
 
-[`MediaCapabilitiesInfo.powerEfficient`](https://www.w3.org/TR/media-capabilities/#dom-mediacapabilitiesinfo-powerefficient) can expose whether a hypothetical configuration is expected to be power efficient without requiring active capture. The protected WebRTC statistics differ because they describe the actual decoder and can change during a session, potentially revealing contention for shared hardware resources across tabs or applications. Requiring prior qualifying user interaction to establish recognition, together with a visible and focused document and an actively decoding recognized receiver, limits this additional exposure to active interactive-media applications that need to respond to decoder changes.
+[`MediaCapabilitiesInfo.powerEfficient`](https://www.w3.org/TR/media-capabilities/#dom-mediacapabilitiesinfo-powerefficient) can indicate whether decoding media with a specified codec, resolution, frame rate, and bitrate is expected to be power efficient, without requiring an active decoding session. The protected WebRTC statistics differ because they describe the actual decoder and can change during a session, potentially revealing contention for shared hardware resources across tabs or applications. Requiring a receiver to first establish interactive-media session recognition through qualifying user interaction, and exposing protected information only while that recognized receiver is visible, focused, and actively decoding, limits the additional exposure to applications that need to respond to decoder changes.
 
 ## Security Considerations
 
