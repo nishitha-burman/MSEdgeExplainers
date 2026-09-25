@@ -159,7 +159,7 @@ An `RTCRtpReceiver` would be recognized as belonging to an **interactive media s
 
 Recognition would be specific to one receiver. Activity on one receiver would not recognize another receiver as belonging to an interactive media session.
 
-Once established, recognition would persist until the receiver's video track ends, its associated transceiver is stopped, its peer connection is closed, its document navigates or is discarded, or it stops receiving and successfully decoding video for a sustained session-termination period. The document becoming hidden or losing focus, an interaction lock ending, or a recent-input window expiring would not by itself end recognition.
+Once established, recognition would persist until the receiver's video track ends, its associated transceiver is stopped, its peer connection is closed, its document navigates or is discarded, or it stops receiving and successfully decoding video for a sustained session-termination period. The document becoming hidden or losing focus, the end of pointer lock or keyboard lock, or a recent-input window expiring would not by itself end recognition.
 
 #### Active interactive media state
 

@@ -58,7 +58,7 @@ session when all of the following entry conditions are true at the same time:
 Recognition applies only to the receiver that satisfied the entry conditions;
 it does not qualify other receivers. Once recognized, the receiver remains
 associated with the interactive session during temporary focus or visibility
-loss, after an interaction lock ends, or when the recent-user-input time
+loss, after pointer lock or keyboard lock ends, or when the recent-user-input time
 window expires. Protected information is still unavailable whenever the
 receiver is not in the active interactive media state.
 
@@ -273,8 +273,8 @@ Recognition ends when the receiver's video track ends, its associated
 transceiver is stopped, its peer connection is closed, its document navigates
 or is discarded, or it stops receiving and successfully decoding video for
 a sustained session-termination period.
-Temporary focus or visibility loss, the end of an interaction lock, or the
-user not providing input recently does not by itself end recognition.
+Temporary focus or visibility loss, the end of pointer lock or keyboard lock,
+or the user not providing input recently does not by itself end recognition.
 
 ## 2.7 Do the features in this specification expose information about the underlying platform to origins?
 
