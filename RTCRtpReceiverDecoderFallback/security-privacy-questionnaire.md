@@ -384,11 +384,8 @@ decoded after exposure resumes.
 
 A disconnected document is not fully active. It does not receive decoder
 events and cannot access the gated `decoderImplementation` or
-`powerEfficientDecoder` statistics.
-
-Intermediate events are not queued or replayed. If the document later becomes
-fully active and the receiver reenters the active interactive media state, the
-general eligibility-transition behavior applies.
+`powerEfficientDecoder` statistics. Disconnection ends the receiver's
+interactive media session recognition. Events are not queued or replayed.
 
 ## 2.20 Does this specification define when and how new kinds of errors should be raised?
 
