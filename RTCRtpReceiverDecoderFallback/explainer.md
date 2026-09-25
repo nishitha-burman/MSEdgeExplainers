@@ -159,7 +159,7 @@ An `RTCRtpReceiver` would be recognized as belonging to an **interactive media s
 
 Recognition would be specific to one receiver. Activity on one receiver would not recognize another receiver as belonging to an interactive media session.
 
-Once established, recognition would persist until the receiver's video track ends, its associated transceiver is stopped, its peer connection is closed, its document navigates or is discarded, or it stops receiving and successfully decoding video for a sustained session-termination period. The document becoming hidden or losing focus, the end of pointer lock or keyboard lock, or a recent-input window expiring would not by itself end recognition.
+Once established, recognition would persist until the receiver's video track ends, its associated transceiver is stopped, its peer connection is closed, its document navigates, enters BFCache, or is discarded, or it stops receiving and successfully decoding video for a sustained session-termination period. The document becoming hidden or losing focus, the end of pointer lock or keyboard lock, or a recent-input window expiring would not by itself end recognition.
 
 #### Active interactive media state
 
@@ -235,12 +235,10 @@ must not qualify.
 
 Documents that are not fully active, including documents in BFCache or
 disconnected documents, must not receive decoder events or access protected
-decoder statistics through the expanded gate. Intermediate changes that occur
-while access is blocked must not be queued or replayed. If eligibility resumes
-and the current decoder implementation differs from the last exposed
-implementation, one coalesced `decoderstatechange` may report the current
-observable state using the `rtpTimestamp` of a frame decoded after exposure
-resumes.
+decoder statistics through the expanded gate. Entering BFCache ends the
+receiver's interactive media session recognition. If the document is restored,
+the receiver must satisfy the recognition conditions again. Changes that
+occurred while the document was in BFCache must not be queued or replayed.
 
 The `decodererror` event exposes only a generic `EncodingError`. It must not
 include decoder, hardware, driver, platform error-code, or

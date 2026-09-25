@@ -367,18 +367,11 @@ encoding.
 
 ## 2.18 What happens when a document that uses this feature is kept alive in BFCache?
 
-A document in BFCache is not fully active, so protected decoder statistics are
-not exposed and decoder events are not dispatched while the document is in
-BFCache. Entering BFCache does not by itself clear the receiver's interactive
-media session recognition.
-
-After restoration, the receiver must reenter the active interactive media
-state before protected information can be exposed. Intermediate decoder
-implementation changes that occurred while the document was in BFCache are
-not replayed. If the current implementation differs from the last
-implementation exposed before entering BFCache, one coalesced
-`decoderstatechange` may be dispatched using the `rtpTimestamp` of a frame
-decoded after exposure resumes.
+A document in BFCache cannot receive decoder events or access protected
+decoder statistics. Entering BFCache ends the receiver's interactive media
+session recognition. If the document is restored, the receiver must satisfy
+the recognition conditions again. Changes that occurred while the document
+was in BFCache are not queued or replayed.
 
 ## 2.19 What happens when a document that uses this feature gets disconnected?
 
