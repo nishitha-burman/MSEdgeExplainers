@@ -272,7 +272,7 @@ and document. It does not persist across browsing sessions.
 Recognition ends when the receiver's video track ends, its associated
 transceiver is stopped, its peer connection is closed, its document navigates
 or is discarded, or it stops receiving and successfully decoding video for
-long enough that the browser determines the interactive session has ended.
+a sustained session-termination period.
 Temporary focus or visibility loss, the end of an interaction lock, or the
 user not providing input recently does not by itself end recognition.
 
